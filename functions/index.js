@@ -12,6 +12,7 @@ exports.menu = functions
   .region("asia-northeast1") // asia-northeast1:Tokyo(=Tire1 / cheaper than Seoul=Tire2)
   .https.onRequest((request, response) => {
     response.set("Access-Control-Allow-Origin", "https://dragonq29.github.io");
+    response.set("Access-Control-Allow-Headers", "Content-Type");
     axios
       .post(
         "https://sfv.hyundaigreenfood.com/smartfood/todaymenuGf/todayMenu_nList_pro.do",
