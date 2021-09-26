@@ -64,14 +64,14 @@ exports.menu_v_2_0_0 = functions
         const dinnerData = coner_fg_cd_arrange(data.get("0003"));
 
         const breakfirstList = createMealList(breakfirstData);
-        const lunchDataList = createMealList(lunchData);
-        const dinnerDataList = createMealList(dinnerData);
+        const lunchList = createMealList(lunchData);
+        const dinnerList = createMealList(dinnerData);
 
         // responseToClient.send(result);
         responseToClient.send({
           breakfirstList,
-          lunchDataList,
-          dinnerDataList,
+          lunchList,
+          dinnerList,
         });
       })
       .catch((err) => responseToClient.send({ ...err.message }));
