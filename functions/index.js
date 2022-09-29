@@ -160,13 +160,15 @@ exports.menu_for_beme = functions
     axios
       .post(
         "https://sfv.hyundaigreenfood.com/smartfood/todaymenuGf/todayMenu_nList_pro.do",
-        requestFromClient.body
+        {
+          st_dt: requestFromClient.body.date,
+          end_dt: requestFromClient.body.date,
+          bizplc_cd: "10095"
+        }
       )
       .then((res) => {
         const receivedData = {
-          st_dt: res.data.date,
-          end_dt: res.data.date,
-          bizplc_cd: "10095"
+          ...res.data,
         };
         if (receivedData.todayList === undefined) {
           responseToClient.send({
