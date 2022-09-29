@@ -147,3 +147,50 @@ const getMainMenu = (data) => {
   }
   return filteredData[0];
 };
+
+
+exports.menu_for_beme = functions
+  .region("asia-northeast1") // asia-northeast1:Tokyo(=Tire1 / cheaper than Seoul=Tire2)
+  .https.onRequest((requestFromClient, responseToClient) => {
+    responseToClient.set(
+      "Access-Control-Allow-Origin",
+      "https://dragonq29.github.io"
+    );
+    responseToClient.set("Access-Control-Allow-Headers", "Content-Type");
+    axios
+      .post(
+        "https://sfv.hyundaigreenfood.com/smartfood/todaymenuGf/todayMenu_nList_pro.do",
+        requestFromClient.body
+      )
+      .then((res) => {
+        const receivedData = {
+          st_dt: res.data.date,
+          end_dt: res.data.date,
+          bizplc_cd: "10095"
+        };
+        if (receivedData.todayList === undefined) {
+          responseToClient.send({
+            msg: "데이터 불러오기 실패",
+            error: true,
+          });
+          return;
+        }
+
+        const data = meald_fg_cd_arrange(receivedData.todayList);
+        const breakfirstData = coner_fg_cd_arrange(data.get("0001"));
+        const lunchData = coner_fg_cd_arrange(data.get("0002"));
+        const dinnerData = coner_fg_cd_arrange(data.get("0003"));
+
+        const breakfirstList = createMealList(breakfirstData);
+        const lunchList = createMealList(lunchData);
+        const dinnerList = createMealList(dinnerData);
+
+        // responseToClient.send(result);
+        responseToClient.send({
+          breakfirstList,
+          lunchList,
+          dinnerList,
+        });
+      })
+      .catch((err) => responseToClient.send({ ...err.message }));
+  });
