@@ -148,6 +148,27 @@ const getMainMenu = (data) => {
   return filteredData[0];
 };
 
+const getCurrentDateTime = () => {
+  // 1. 현재 시간(Locale)
+  const curr = new Date();
+
+  // 2. UTC 시간 계산
+  const utc = 
+        curr.getTime() + 
+        (curr.getTimezoneOffset() * 60 * 1000);
+
+  // 3. UTC to KST (UTC + 9시간)
+  const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+  const date = 
+        new Date(utc + (KR_TIME_DIFF));
+
+  var year = date.getFullYear();
+  var month = ("0" + (1 + date.getMonth())).slice(-2);
+  var day = ("0" + date.getDate()).slice(-2);
+
+  return year + month + day;  
+}
+
 
 exports.menu_for_beme = functions
   .region("asia-northeast1") // asia-northeast1:Tokyo(=Tire1 / cheaper than Seoul=Tire2)
@@ -157,14 +178,23 @@ exports.menu_for_beme = functions
       "https://dragonq29.github.io"
     );
     responseToClient.set("Access-Control-Allow-Headers", "Content-Type");
+    const currentYYYYMMDD = getCurrentDateTime();
+    let postData = {
+      st_dt: currentYYYYMMDD,
+      end_dt: currentYYYYMMDD,
+      bizplc_cd: "10095"
+    }
+    if (Object.keys(requestFromClient.query).length !== 0) {
+      postData = {
+        st_dt: requestFromClient.query.date,
+        end_dt: requestFromClient.query.date,
+        bizplc_cd: "10095"
+      }
+    }
     axios
       .post(
         "https://sfv.hyundaigreenfood.com/smartfood/todaymenuGf/todayMenu_nList_pro.do",
-        {
-          st_dt: requestFromClient.body.date,
-          end_dt: requestFromClient.body.date,
-          bizplc_cd: "10095"
-        }
+        postData
       )
       .then((res) => {
         const receivedData = {
