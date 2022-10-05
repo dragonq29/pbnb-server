@@ -59,23 +59,38 @@ exports.menu_v_2_0_0 = functions
         }
 
         const data = meald_fg_cd_arrange(receivedData.todayList);
-        const breakfirstData = coner_fg_cd_arrange(data.get("0001"));
+        const breakfastData = coner_fg_cd_arrange(data.get("0001"));
         const lunchData = coner_fg_cd_arrange(data.get("0002"));
         const dinnerData = coner_fg_cd_arrange(data.get("0003"));
 
-        const breakfirstList = createMealList(breakfirstData);
+        const breakfastList = createMealList(breakfastData);
         const lunchList = createMealList(lunchData);
         const dinnerList = createMealList(dinnerData);
 
         // responseToClient.send(result);
         responseToClient.send({
-          breakfirstList,
+          breakfirstList: breakfastList,
           lunchList,
           dinnerList,
         });
       })
       .catch((err) => responseToClient.send({ ...err.message }));
   });
+
+// 0. svr_dt(날짜) 별로 나눔
+const svr_dt_arrange = (data) => {
+  if (data == undefined) {
+    return undefined;
+  }
+  return data.reduce((initVal, curVal) => {
+    if (!initVal.has(curVal.svr_dt)) {
+      initVal.set(curVal.svr_dt, []);
+    }
+    initVal.get(curVal.svr_dt).push(curVal);
+    return initVal;
+  }, new Map());
+};
+
 
 // 1. meald_fg_cd(조식,중식,석식) 별로 나눔
 const meald_fg_cd_arrange = (data) => {
@@ -112,7 +127,7 @@ const createMealList = (data) => {
   }
   let resultArray = [];
 
-  for (let [key, value] of data) {
+  for (let value of data.values()) {
     const mainMenu = getMainMenu(value);
     const mealName = mainMenu.coner_fg_nm;
     const mainMenuName = mainMenu.disp_nm;
@@ -131,10 +146,38 @@ const createMealList = (data) => {
     };
     resultArray.push(result);
   }
-
-  console.log(resultArray);
   return resultArray;
 };
+
+// 3-1. 3번에 'https://sfv.hyundaigreenfood.com'를 image에 붙인 것
+const createMealListWithImageOrg = (data) => {
+  if (data == undefined) {
+    return undefined;
+  }
+  let resultArray = [];
+
+  for (let value of data.values()) {
+    const mainMenu = getMainMenu(value);
+    const mealName = mainMenu.coner_fg_nm;
+    const mainMenuName = mainMenu.disp_nm;
+    const list = value.map((m) => {
+      return m.disp_nm;
+    });
+    const image =
+      mainMenu.save_file_nm != null
+        ? mainMenu.file_path + mainMenu.save_file_nm
+        : null;
+    const result = {
+      mealName: mealName,
+      mainMenuName: mainMenuName,
+      image: image ? 'https://sfv.hyundaigreenfood.com' + image : null,
+      list: list,
+    };
+    resultArray.push(result);
+  }
+  return resultArray;
+};
+
 
 const getMainMenu = (data) => {
   const filteredData = data.filter((n) => {
@@ -185,10 +228,18 @@ exports.menu_for_beme = functions
       bizplc_cd: "10095"
     }
     if (Object.keys(requestFromClient.query).length !== 0) {
-      postData = {
-        st_dt: requestFromClient.query.date,
-        end_dt: requestFromClient.query.date,
-        bizplc_cd: "10095"
+      if (requestFromClient.query.date !== undefined) {
+        postData = {
+          st_dt: requestFromClient.query.date,
+          end_dt: requestFromClient.query.date,
+          bizplc_cd: "10095"
+        }
+      } else if ((requestFromClient.query.start_date !== undefined) && (requestFromClient.query.end_date !== undefined)) {
+        postData = {
+          st_dt: requestFromClient.query.start_date,
+          end_dt: requestFromClient.query.end_date,
+          bizplc_cd: "10095"
+        }
       }
     }
     axios
@@ -207,22 +258,31 @@ exports.menu_for_beme = functions
           });
           return;
         }
+        const dailyDataMap = svr_dt_arrange(receivedData.todayList);
 
-        const data = meald_fg_cd_arrange(receivedData.todayList);
-        const breakfirstData = coner_fg_cd_arrange(data.get("0001"));
-        const lunchData = coner_fg_cd_arrange(data.get("0002"));
-        const dinnerData = coner_fg_cd_arrange(data.get("0003"));
+        const resData = [];
+        for (let entry of dailyDataMap) {
+          const yyyymmdd = entry[0];
+          const dailyData = entry[1];
 
-        const breakfirstList = createMealList(breakfirstData);
-        const lunchList = createMealList(lunchData);
-        const dinnerList = createMealList(dinnerData);
+          const data = meald_fg_cd_arrange(dailyData);
+          const breakfastData = coner_fg_cd_arrange(data.get("0001"));
+          const lunchData = coner_fg_cd_arrange(data.get("0002"));
+          const dinnerData = coner_fg_cd_arrange(data.get("0003"));
+  
+          const breakfastList = createMealListWithImageOrg(breakfastData);
+          const lunchList = createMealListWithImageOrg(lunchData);
+          const dinnerList = createMealListWithImageOrg(dinnerData);
 
-        // responseToClient.send(result);
-        responseToClient.send({
-          breakfirstList,
-          lunchList,
-          dinnerList,
-        });
+          const result = {
+            date: yyyymmdd,
+            breakfastList: breakfastList && breakfastList.length > 0 ? breakfastList[0] : undefined,
+            lunchList: lunchList && lunchList.length > 0 ? lunchList[0] : undefined,
+            dinnerList: dinnerList && dinnerList.length > 0 ? dinnerList[0] : undefined,
+          };
+          resData.push(result);
+        }
+        responseToClient.send(resData);
       })
       .catch((err) => responseToClient.send({ ...err.message }));
   });
