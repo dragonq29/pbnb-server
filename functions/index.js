@@ -212,6 +212,34 @@ const getCurrentDateTime = () => {
   return year + month + day;  
 }
 
+function to_plus_one_date(date_str)
+{
+    let yyyyMMdd = String(date_str);
+    let sYear = yyyyMMdd.substring(0,4);
+    let sMonth = yyyyMMdd.substring(4,6);
+    let sDate = yyyyMMdd.substring(6,8);
+
+    let oldDate = new Date(Number(sYear), Number(sMonth) - 1, Number(sDate));
+
+    oldDate.setDate(oldDate.getDate() + 1);
+
+    var year = oldDate.getFullYear();
+    var month = ("0" + (1 + oldDate.getMonth())).slice(-2);
+    var day = ("0" + oldDate.getDate()).slice(-2);
+  
+
+    return year + month + day;
+}
+
+function to_date(date_str)
+{
+    var yyyyMMdd = String(date_str);
+    var sYear = yyyyMMdd.substring(0,4);
+    var sMonth = yyyyMMdd.substring(4,6);
+    var sDate = yyyyMMdd.substring(6,8);
+
+    return new Date(Number(sYear), Number(sMonth)-1, Number(sDate));
+}
 
 exports.menu_for_beme = functions
   .region("asia-northeast1") // asia-northeast1:Tokyo(=Tire1 / cheaper than Seoul=Tire2)
@@ -227,6 +255,7 @@ exports.menu_for_beme = functions
       end_dt: currentYYYYMMDD,
       bizplc_cd: "10095"
     }
+    let limitCount = 999999
     if (Object.keys(requestFromClient.query).length !== 0) {
       if (requestFromClient.query.date !== undefined) {
         postData = {
@@ -240,6 +269,10 @@ exports.menu_for_beme = functions
           end_dt: requestFromClient.query.end_date,
           bizplc_cd: "10095"
         }
+      }
+
+      if (requestFromClient.query.limit !== undefined) {
+        limitCount = requestFromClient.query.limit
       }
     }
     axios
@@ -259,8 +292,8 @@ exports.menu_for_beme = functions
           return;
         }
         const dailyDataMap = svr_dt_arrange(receivedData.todayList);
-
-        const resData = [];
+        let nextUrl = null;
+        const mealList = [];
         for (let entry of dailyDataMap) {
           const yyyymmdd = entry[0];
           const dailyData = entry[1];
@@ -280,9 +313,17 @@ exports.menu_for_beme = functions
             lunchList: lunchList && lunchList.length > 0 ? lunchList[0] : undefined,
             dinnerList: dinnerList && dinnerList.length > 0 ? dinnerList[0] : undefined,
           };
-          resData.push(result);
+          mealList.push(result);
+
+          limitCount--;
+          if (limitCount === 0) {
+            if (requestFromClient.query.limit !== undefined && to_date(yyyymmdd) < to_date(requestFromClient.query.end_date)) {
+              nextUrl = `https://asia-northeast1-pbnb-2f164.cloudfunctions.net/menu_for_beme?start_date=${to_plus_one_date(yyyymmdd)}&end_date=${requestFromClient.query.end_date}&limit=${requestFromClient.query.limit}`
+            }
+            break;
+          }
         }
-        responseToClient.send(resData);
+        responseToClient.send({nextUrl,mealList});
       })
       .catch((err) => responseToClient.send({ ...err.message }));
   });
