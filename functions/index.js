@@ -302,19 +302,28 @@ exports.menu_for_beme = functions
           const breakfastData = coner_fg_cd_arrange(data.get("0001"));
           const lunchData = coner_fg_cd_arrange(data.get("0002"));
           const dinnerData = coner_fg_cd_arrange(data.get("0003"));
-  
+          
           const breakfastList = createMealListWithImageOrg(breakfastData);
           const lunchList = createMealListWithImageOrg(lunchData);
           const dinnerList = createMealListWithImageOrg(dinnerData);
-
+          
           const result = {
             date: yyyymmdd,
-            breakfastList: breakfastList && breakfastList.length > 0 ? breakfastList[0] : undefined,
-            lunchList: lunchList && lunchList.length > 0 ? lunchList[0] : undefined,
-            dinnerList: dinnerList && dinnerList.length > 0 ? dinnerList[0] : undefined,
+            breakfast: breakfastList && breakfastList.length > 0 ? {
+              korean: breakfastList.length >= 1 ? breakfastList[0].list : null,
+              snack: breakfastList.length >= 2 ? breakfastList[1].list : null,
+            } : undefined,
+            lunch: lunchList && lunchList.length > 0 ? {
+              korean: lunchList.length >= 1 ? lunchList[0].list : null,
+              snack: lunchList.length >= 2 ? lunchList[1].list : null,
+            } : undefined,
+            dinner: dinnerList && dinnerList.length > 0 ? {
+              korean: dinnerList.length >= 1 ? dinnerList[0].list : null,
+              snack: dinnerList.length >= 2 ? dinnerList[1].list : null,
+            } : undefined,
           };
           mealList.push(result);
-
+          
           limitCount--;
           if (limitCount === 0) {
             if (requestFromClient.query.limit !== undefined && to_date(yyyymmdd) < to_date(requestFromClient.query.end_date)) {
