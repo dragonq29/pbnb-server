@@ -184,9 +184,15 @@ const getMainMenu = (data) => {
     return n.main_dish_yn === "Y";
   });
   if (filteredData === undefined || filteredData.length === 0) {
-    return data.filter((n) => {
+    const seq1Filter = data.filter((n) => {
       return n.seq === "1";
-    })[0];
+    });
+    // {"st_dt": "20221130","end_dt": "20221130","bizplc_cd": "10095"} 때문에 조건 추가
+    if (seq1Filter.length != 0) {
+      return seq1Filter[0];
+    } else {
+      return data[0];
+    }    
   }
   return filteredData[0];
 };
